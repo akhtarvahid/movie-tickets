@@ -1,0 +1,73 @@
+version: "3"
+services:
+  postgres:
+    restart: always
+    container_name: postgres
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/data/postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - postgres
+ 
+  # pgadmin:
+  #   restart: always
+  #   links:
+  #     - postgres:postgres
+  #   container_name: pgadmin
+  #   image: dpage/pgadmin4
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./data/pgadmin:/root/.pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+  #   networks:
+  #     - postgres
+ 
+  es01:
+      image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+      container_name: es01
+      environment:
+        - node.name=es01
+        - cluster.name=es-docker-cluster
+        - discovery.seed_hosts=es01
+        - cluster.initial_master_nodes=es01
+        - bootstrap.memory_lock=true
+        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_NODE}
+        - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+        - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+      volumes:
+        - data01:/usr/share/elasticsearch/data
+      ports:
+        - 9200:9200
+
+  kibana:
+    restart: always
+    image: kibana:7.8.1
+    container_name: kibana
+    environment:
+      XPACK_SECURITY_ENABLED: 'true'
+      ELASTICSEARCH_HOSTS: ${ELASTICSEARCH_NODE}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD}
+    network_mode: "host"
+
+volumes:
+  data01:
+    driver: local
+
+networks:
+  postgres:
+    driver: bridge
